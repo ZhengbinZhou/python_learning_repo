@@ -1,0 +1,239 @@
+非常好 👍 Eddie。你现在的状态非常适合系统学习 **BeautifulSoup4（简称 bs4）** —— 有了 `requests` 的基础，理解 HTML 内容提取就容易多了。
+既然你希望按照 **PBL（Project-Based Learning）** 的方式来学，我们就会边讲、边动手、边带上实战任务（小项目练习），这样你学得更扎实。
+
+---
+
+下面是我们今天的学习路线图（对应你要求的八个部分）：
+
+> 💡 每个部分我都会讲：**概念 + 示例 + 小练习任务（Project Hint）**。
+
+---
+
+## 🧩 1. 安装 BeautifulSoup4
+
+### 💬 简介
+
+`BeautifulSoup4` 是 Python 的 HTML/XML 解析库，可以轻松地从网页文本中提取结构化数据。
+通常和 `requests` 一起使用，前者负责“拿网页”，后者负责“拆网页”。
+
+### ⚙️ 安装
+
+```bash
+pip install beautifulsoup4
+```
+
+通常还会配合 `lxml` 或 `html.parser` 使用：
+
+```bash
+pip install lxml
+```
+
+### ✅ 示例
+
+```python
+from bs4 import BeautifulSoup
+
+html_doc = "<html><body><h1>Hello, World!</h1></body></html>"
+soup = BeautifulSoup(html_doc, "lxml")
+print(soup.h1.text)  # 输出：Hello, World!
+```
+
+> 💡 **Project Hint #1：**
+> 试着用 requests 获取一个网页（例如 [https://quotes.toscrape.com），用](https://quotes.toscrape.com），用) bs4 提取所有的引言（quotes）。
+
+---
+
+## 🌿 2. 基本元素（BeautifulSoup 树形结构）
+
+### 💬 概念
+
+bs4 会把 HTML 文档解析成一棵“树”，主要节点类型如下：
+
+| 类型                | 说明      | 示例                 |
+| ----------------- | ------- | ------------------ |
+| `Tag`             | HTML 标签 | `<title>`、`<p>` 等  |
+| `NavigableString` | 标签中的字符串 | `“Hello world”`    |
+| `BeautifulSoup`   | 整个文档对象  | `soup` 本身          |
+| `Comment`         | 注释节点    | `<!-- comment -->` |
+
+### ✅ 示例
+
+```python
+from bs4 import BeautifulSoup
+
+html = "<html><head><title>我的网页</title></head><body><p>内容</p></body></html>"
+soup = BeautifulSoup(html, "lxml")
+
+print(soup.title)      # <title>我的网页</title>
+print(soup.title.name) # title
+print(soup.title.string) # 我的网页
+print(soup.p)          # <p>内容</p>
+print(soup.p.string)   # 内容
+```
+
+> 💡 **Project Hint #2：**
+> 试着分析一个网页的结构（比如 news.baidu.com），用 `.title`、`.p`、`.a` 等属性提取标签内容。
+
+---
+
+## 🧭 3. HTML 内容遍历方法
+
+### 💬 常用遍历属性和方法
+
+| 方法                                      | 说明         |
+| --------------------------------------- | ---------- |
+| `.contents`                             | 返回子节点的列表   |
+| `.children`                             | 返回子节点的迭代器  |
+| `.descendants`                          | 返回所有子孙节点   |
+| `.parent` / `.parents`                  | 父节点/所有上级节点 |
+| `.next_sibling` / `.previous_sibling`   | 同级节点       |
+| `.next_elements` / `.previous_elements` | 兄弟节点（含文本）  |
+
+### ✅ 示例
+
+```python
+html = '''
+<html>
+  <body>
+    <div>
+      <p>段落1</p>
+      <p>段落2</p>
+    </div>
+  </body>
+</html>
+'''
+soup = BeautifulSoup(html, "lxml")
+div = soup.div
+for p in div.children:
+    print(p.string)
+```
+
+> 💡 **Project Hint #3：**
+> 遍历一个网页中所有 `<a>` 标签，打印链接文字和 `href` 属性。
+
+---
+
+## 💎 4. HTML 格式化与编码
+
+### 💬 格式化输出
+
+`prettify()` 方法可以让 HTML 结构以缩进方式打印，方便调试。
+
+```python
+print(soup.prettify())
+```
+
+### 💬 编码问题
+
+bs4 默认会自动识别网页编码（尤其配合 requests 的 `.encoding`），但也可以手动设置：
+
+```python
+html = response.content.decode('utf-8')
+soup = BeautifulSoup(html, "lxml", from_encoding="utf-8")
+```
+
+> 💡 **Project Hint #4：**
+> 把一个复杂网页 prettify 输出，看清 HTML 结构层级，为下一步提取信息做准备。
+
+---
+
+## 🏷️ 5. 信息标记的三种方式
+
+HTML 中的“信息标记”是区分不同元素的基础，常见三种方式：
+
+| 方式    | 示例                      | 提取依据            |
+| ----- | ----------------------- | --------------- |
+| 标签名标记 | `<p>` `<div>`           | 标签类型            |
+| 属性标记  | `<div class="info">`    | 通过 class/id 等属性 |
+| 文本标记  | `<p>Python 是最棒的语言！</p>` | 通过文字内容          |
+
+> 💡 类似于给网页的每个部分“贴标签”，方便我们锁定要抓的内容。
+
+---
+
+## ⚖️ 6. 三种信息标记方法的比较
+
+| 方法  | 优点    | 缺点          | 使用场景     |
+| --- | ----- | ----------- | -------- |
+| 标签名 | 简单直接  | 容易重复        | 网页结构单一   |
+| 属性  | 精确定位  | 依赖 class/id | 页面结构稳定   |
+| 文本  | 可模糊匹配 | 容易误匹配       | 内容明显且唯一时 |
+
+> 💡 **Project Hint #5：**
+> 用三种方式各提取一次同一个网页上的“文章标题”或“名言”。
+
+---
+
+## 🔍 7. 信息提取的一般方法
+
+### 💬 常用方法
+
+| 方法                                                        | 用途         | 示例                            |
+| --------------------------------------------------------- | ---------- | ----------------------------- |
+| `find(name, attrs, recursive, text, **kwargs)`            | 查找第一个匹配元素  | `soup.find('a')`              |
+| `find_all(name, attrs, recursive, text, limit, **kwargs)` | 查找所有匹配元素   | `soup.find_all('a')`          |
+| `select(css_selector)`                                    | 使用 CSS 选择器 | `soup.select('div.info > a')` |
+
+### ✅ 示例
+
+```python
+for link in soup.find_all('a', class_='link'):
+    print(link['href'], link.text)
+
+# 或用 CSS 选择器
+for a in soup.select('div.quote > span.text'):
+    print(a.text)
+```
+
+> 💡 **Project Hint #6：**
+> 用 `find_all` 抓取某网站（如 quotes.toscrape.com）上所有作者的名字。
+
+---
+
+## 🛠️ 8. 基于 bs 的 HTML 内容编辑方法
+
+### 💬 修改与新增
+
+bs4 不仅能“读”，还能“改”HTML。
+
+```python
+soup.p.string = "新的段落内容"
+new_tag = soup.new_tag("a", href="https://example.com")
+new_tag.string = "点击这里"
+soup.body.append(new_tag)
+
+print(soup.prettify())
+```
+
+### 💬 删除
+
+```python
+soup.p.decompose()  # 删除<p>标签
+```
+
+> 💡 **Project Hint #7：**
+> 编写脚本：抓取一个网页 → 提取某段文字 → 替换为你自己的文字 → 保存到本地 HTML 文件。
+
+---
+
+## 🎯 最后总结（学习目标对照）
+
+| 模块   | 关键技能                    |
+| ---- | ----------------------- |
+| 安装   | pip、解析器选择               |
+| 基本元素 | 了解节点类型                  |
+| 遍历   | 熟悉树形结构                  |
+| 格式化  | 阅读 HTML                 |
+| 信息标记 | 理解定位思路                  |
+| 方法比较 | 选择合适提取方式                |
+| 提取   | 掌握 find/find_all/select |
+| 编辑   | 能修改并导出 HTML             |
+
+---
+
+是否希望我接下来为你设计一个 **PBL 小项目**，比如：
+
+> “抓取并整理 Quotes 网站上的名言，保存成 CSV 文件”
+> 作为这个 BeautifulSoup 学习的实战任务？
+
+我可以带你分阶段完成（边讲边做，每步都有代码模板和讲解）。
